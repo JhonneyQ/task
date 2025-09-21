@@ -34,3 +34,13 @@ export async function enqueueEmail({
 
   return data;
 }
+
+// 🚀 New helper for testing
+export async function enqueueTestEmail(userId: string) {
+  return enqueueEmail({
+    userId,
+    templateKey: "welcome_day0", // must exist in email_templates
+    payload: { name: "Tester" },
+    delaySeconds: 0,
+  });
+}
