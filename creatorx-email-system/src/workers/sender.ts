@@ -31,15 +31,25 @@ export async function senderLoop() {
 
   for (const email of claimed) {
     try {
-      // 2. Get recipient email from users table
+      // 2. Get recipient email + marketing preference
       const { data: user, error: userError } = await supabase
-        .from("profiles") // 👈 adjust to your actual table name
-        .select("email")
+        .from("profiles") // 👈 adjust if your table is different
+        .select("email, marketing_opt_in")
         .eq("id", email.user_id)
         .single();
 
       if (userError || !user?.email) {
         throw new Error(`User email not found for user_id=${email.user_id}`);
+      }
+
+      // 🔒 Skip if user unsubscribed
+      if (user.marketing_opt_in === false) {
+        console.log(`⚠️ User ${email.user_id} unsubscribed, skipping email`);
+        await supabase
+          .from("email_queue")
+          .update({ status: "skipped" })
+          .eq("id", email.id);
+        continue;
       }
 
       const recipientEmail =
@@ -64,10 +74,16 @@ export async function senderLoop() {
 
       // 4. Send with Resend
       const { data, error: sendError } = await resend.emails.send({
-        from: "onboarding@resend.dev", // or verified domain in production
+        from: "onboarding@resend.dev", // ✅ replace with verified domain in production
         to: recipientEmail,
         subject: template.subject,
-        html,
+        html: `${html}
+          <br><br>
+          <small>
+            <a href="${process.env.NEXT_PUBLIC_URL}/email/preferences?u=${email.user_id}">
+              Manage your email preferences
+            </a>
+          </small>`,
       });
 
       if (sendError) throw sendError;
