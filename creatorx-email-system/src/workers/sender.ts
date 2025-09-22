@@ -1,10 +1,9 @@
-
 import { resend } from "../lib/resend";
 import { supabase } from "../lib/supabase";
 
-
 const BATCH_SIZE = 10;
 
+// replace {{placeholders}} in template with payload values
 async function renderTemplate(template: string, payload: Record<string, any>) {
   let html = template;
   for (const key of Object.keys(payload)) {
@@ -32,7 +31,23 @@ export async function senderLoop() {
 
   for (const email of claimed) {
     try {
-      // 2. Load template
+      // 2. Get recipient email from users table
+      const { data: user, error: userError } = await supabase
+        .from("profiles") // 👈 adjust to your actual table name
+        .select("email")
+        .eq("id", email.user_id)
+        .single();
+
+      if (userError || !user?.email) {
+        throw new Error(`User email not found for user_id=${email.user_id}`);
+      }
+
+      const recipientEmail =
+        process.env.NODE_ENV === "production"
+          ? user.email // send to real user in prod
+          : "kananqadirov2005@gmail.com"; // 👈 test email in sandbox
+
+      // 3. Load template
       const { data: templates } = await supabase
         .from("email_templates")
         .select("*")
@@ -47,17 +62,17 @@ export async function senderLoop() {
         name: email.payload?.name || "there",
       });
 
-      // 3. Send with Resend
+      // 4. Send with Resend
       const { data, error: sendError } = await resend.emails.send({
-        from: "onboarding@resend.dev",
-        to: "your.email@example.com", // sandbox mode
+        from: "onboarding@resend.dev", // or verified domain in production
+        to: recipientEmail,
         subject: template.subject,
         html,
       });
 
       if (sendError) throw sendError;
 
-      // 4. Update queue + log event
+      // 5. Update queue + log event
       await supabase
         .from("email_queue")
         .update({ status: "sent" })
@@ -71,7 +86,7 @@ export async function senderLoop() {
         },
       ]);
 
-      console.log(`✅ Sent ${template.key} to user ${email.user_id}`);
+      console.log(`✅ Sent ${template.key} to ${recipientEmail}`);
     } catch (err) {
       console.error("❌ Failed sending:", err);
 
