@@ -1,8 +1,8 @@
 import { supabase } from "../lib/supabase";
 import { enqueueEmail } from "../lib/email";
 
-const DEMO_MODE = process.env.ACCELERATE_MODE === "true"; 
-const LOOP_INTERVAL = DEMO_MODE ? 10 * 1000 : 10 * 60 * 1000; 
+const DEMO_MODE = process.env.ACCELERATE_MODE === "true";
+const LOOP_INTERVAL = DEMO_MODE ? 10 * 1000 : 10 * 60 * 1000;
 
 export async function journeyEvaluator() {
   console.log("🔄 Running journey evaluator...");
@@ -27,12 +27,13 @@ export async function journeyEvaluator() {
       const { user_id, step_no, last_advanced_at } = journey;
       const last = new Date(last_advanced_at);
 
-      // --- 🔥 NEW: Check if user published a video
+
+      // --- 🔥 NEW: Check if user published a video OR created a project
       const { data: events } = await supabase
         .from("app_events")
         .select("*")
         .eq("user_id", user_id)
-        .eq("type", "video_published")
+        .in("type", ["video_published", "project_created"]) // 👈 both count
         .gte("created_at", last.toISOString()); // only after last step
 
       if (events && events.length > 0) {
@@ -51,6 +52,7 @@ export async function journeyEvaluator() {
         console.log(`🎉 Queued congrats_first_publish for ${user_id}`);
         continue; // skip rest of checks
       }
+
 
       // --- Step 0
       if (step_no === 0) {

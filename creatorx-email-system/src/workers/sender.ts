@@ -78,12 +78,15 @@ export async function senderLoop() {
         to: recipientEmail,
         subject: template.subject,
         html: `${html}
-          <br><br>
-          <small>
-            <a href="${process.env.NEXT_PUBLIC_URL}/email/preferences?u=${email.user_id}">
-              Manage your email preferences
-            </a>
-          </small>`,
+    <br><br>
+    <small>
+      <a href="${process.env.NEXT_PUBLIC_URL}/email/preferences?u=${email.user_id}">
+        Manage your email preferences
+      </a>
+    </small>`,
+        headers: {
+          "List-Unsubscribe": `<${process.env.NEXT_PUBLIC_URL}/email/preferences?u=${email.user_id}>`,
+        },
       });
 
       if (sendError) throw sendError;

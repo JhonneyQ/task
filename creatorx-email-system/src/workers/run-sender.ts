@@ -1,11 +1,6 @@
 import { senderLoop } from "./sender";
 
-const LOOP_INTERVAL = 15 * 1000; // every 15s (adjust as needed)
+const LOOP_INTERVAL = 15 * 1000; // 15s
 
-// Run immediately once
-senderLoop();
-
-// Run repeatedly
+senderLoop(); // run once at startup
 setInterval(senderLoop, LOOP_INTERVAL);
-
-console.log(`🚀 Sender loop running every ${LOOP_INTERVAL / 1000}s`);

@@ -6,28 +6,30 @@ export default function TestPage() {
   const [userId, setUserId] = useState("");
   const [logs, setLogs] = useState<string[]>([]);
 
-  async function createUser() {
-    const res = await fetch("/api/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: "test" + Date.now() + "@example.com",
-        full_name: "Test User",
-        timezone: "America/New_York",
-      }),
-    });
-    const data = await res.json();
-    setLogs((l) => [...l, "User response: " + JSON.stringify(data)]);
-    if (data.profile?.id) setUserId(data.profile.id);
-  }
+  // async function createUser() {
+  //   const res = await fetch("/api/users", {
+  //     method: "POST",
+  //     headers: { "Content-Type": "application/json" },
+  //     body: JSON.stringify({
+  //       email: "test" + Date.now() + "@example.com",
+  //       full_name: "Test User",
+  //       timezone: "America/New_York",
+  //     }),
+  //   });
+  //   const data = await res.json();
+  //   setLogs((l) => [...l, "User response: " + JSON.stringify(data)]);
+  //   if (data.profile?.id) setUserId(data.profile.id);
+  // }
+
+  const id = "85629cc3-edfc-434a-962b-951e0121ed1d"; // 👈 replace with a real user ID from your `profiles` table
 
   async function createProject() {
-    if (!userId) return alert("No user yet");
+    if (!id) return alert("No user yet");
     const res = await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        user_id: userId,
+        user_id: id,
         project_name: "My First Project",
       }),
     });
@@ -36,12 +38,12 @@ export default function TestPage() {
   }
 
   async function publishVideo() {
-    if (!userId) return alert("No user yet");
+    if (!id) return alert("No user yet");
     const res = await fetch("/api/publish", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        user_id: userId,
+        user_id: id,
         video_id: "vid_" + Date.now(),
       }),
     });
@@ -52,11 +54,11 @@ export default function TestPage() {
   return (
     <div style={{ padding: 20 }}>
       <h1>API Test Page</h1>
-      <button onClick={createUser}>Create User</button>
-      <button onClick={createProject} disabled={!userId}>
+      {/* <button onClick={createUser}>Create User</button> */}
+      <button onClick={createProject} disabled={!id}>
         Create Project
       </button>
-      <button onClick={publishVideo} disabled={!userId}>
+      <button onClick={publishVideo} disabled={!id}>
         Publish Video
       </button>
 
