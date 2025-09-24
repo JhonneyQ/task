@@ -13,27 +13,34 @@ async function renderTemplate(template: string, payload: Record<string, any>) {
 }
 
 export async function senderLoop() {
-  // 1. Claim batch
-  const { data: claimed, error: claimError } = await supabase.rpc(
-    "claim_email_batch",
-    { batch_size: BATCH_SIZE }
-  );
+  // 1. Get batch of pending emails ready to send
+  const { data: emails, error: fetchError } = await supabase
+    .from("email_queue")
+    .select("*")
+    .eq("status", "pending")
+    .lte("send_after", new Date().toISOString())
+    .limit(10);
 
-  if (claimError) {
-    console.error("Claim error:", claimError);
+  if (fetchError) {
+    console.error("Fetch error:", fetchError);
     return;
   }
 
-  if (!claimed || claimed.length === 0) {
+  if (!emails || emails.length === 0) {
     console.log("No emails to send.");
     return;
   }
 
-  for (const email of claimed) {
+  // 2. Mark them as "sending" (to avoid duplicates if loop overlaps)
+  const ids = emails.map((e) => e.id);
+  await supabase.from("email_queue").update({ status: "sending" }).in("id", ids);
+
+  // 3. Process each
+  for (const email of emails) {
     try {
-      // 2. Get recipient email + marketing preference
+      // Get recipient
       const { data: user, error: userError } = await supabase
-        .from("profiles") // 👈 adjust if your table is different
+        .from("profiles")
         .select("email, marketing_opt_in")
         .eq("id", email.user_id)
         .single();
@@ -42,22 +49,18 @@ export async function senderLoop() {
         throw new Error(`User email not found for user_id=${email.user_id}`);
       }
 
-      // 🔒 Skip if user unsubscribed
       if (user.marketing_opt_in === false) {
         console.log(`⚠️ User ${email.user_id} unsubscribed, skipping email`);
-        await supabase
-          .from("email_queue")
-          .update({ status: "skipped" })
-          .eq("id", email.id);
+        await supabase.from("email_queue").update({ status: "skipped" }).eq("id", email.id);
         continue;
       }
 
       const recipientEmail =
         process.env.NODE_ENV === "production"
-          ? user.email // send to real user in prod
-          : "kananqadirov2005@gmail.com"; // 👈 test email in sandbox
+          ? user.email
+          : "kananqadirov2005@gmail.com"; // test email
 
-      // 3. Load template
+      // Get template
       const { data: templates } = await supabase
         .from("email_templates")
         .select("*")
@@ -68,22 +71,20 @@ export async function senderLoop() {
       }
 
       const template = templates[0];
-      const html = await renderTemplate(template.html, {
-        name: email.payload?.name || "there",
-      });
+      const html = await renderTemplate(template.html, email.payload || { name: "there" });
 
-      // 4. Send with Resend
+      // Send
       const { data, error: sendError } = await resend.emails.send({
-        from: "onboarding@resend.dev", // ✅ replace with verified domain in production
+        from: "onboarding@resend.dev",
         to: recipientEmail,
         subject: template.subject,
         html: `${html}
-    <br><br>
-    <small>
-      <a href="${process.env.NEXT_PUBLIC_URL}/email/preferences?u=${email.user_id}">
-        Manage your email preferences
-      </a>
-    </small>`,
+          <br><br>
+          <small>
+            <a href="${process.env.NEXT_PUBLIC_URL}/email/preferences?u=${email.user_id}">
+              Manage your email preferences
+            </a>
+          </small>`,
         headers: {
           "List-Unsubscribe": `<${process.env.NEXT_PUBLIC_URL}/email/preferences?u=${email.user_id}>`,
         },
@@ -91,11 +92,8 @@ export async function senderLoop() {
 
       if (sendError) throw sendError;
 
-      // 5. Update queue + log event
-      await supabase
-        .from("email_queue")
-        .update({ status: "sent" })
-        .eq("id", email.id);
+      // Update queue
+      await supabase.from("email_queue").update({ status: "sent" }).eq("id", email.id);
 
       await supabase.from("email_events").insert([
         {
@@ -108,11 +106,7 @@ export async function senderLoop() {
       console.log(`✅ Sent ${template.key} to ${recipientEmail}`);
     } catch (err) {
       console.error("❌ Failed sending:", err);
-
-      await supabase
-        .from("email_queue")
-        .update({ status: "failed" })
-        .eq("id", email.id);
+      await supabase.from("email_queue").update({ status: "failed" }).eq("id", email.id);
     }
   }
 }

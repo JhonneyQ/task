@@ -6,30 +6,30 @@ export default function TestPage() {
   const [userId, setUserId] = useState("");
   const [logs, setLogs] = useState<string[]>([]);
 
-  // async function createUser() {
-  //   const res = await fetch("/api/users", {
-  //     method: "POST",
-  //     headers: { "Content-Type": "application/json" },
-  //     body: JSON.stringify({
-  //       email: "test" + Date.now() + "@example.com",
-  //       full_name: "Test User",
-  //       timezone: "America/New_York",
-  //     }),
-  //   });
-  //   const data = await res.json();
-  //   setLogs((l) => [...l, "User response: " + JSON.stringify(data)]);
-  //   if (data.profile?.id) setUserId(data.profile.id);
-  // }
+  async function createUser() {
+    const res = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "kananqadirov2005@gmail.com",
+        full_name: "Test User",
+        timezone: "America/New_York",
+      }),
+    });
+    const data = await res.json();
+    setLogs((l) => [...l, "User response: " + JSON.stringify(data)]);
+    if (data.profile?.id) setUserId(data.profile.id);
+  }
 
-  const id = "85629cc3-edfc-434a-962b-951e0121ed1d"; // 👈 replace with a real user ID from your `profiles` table
+  const id = "fbb12004-64ab-4a83-80b9-555289e8da8b"; // 👈 replace with a real user ID from your `profiles` table
 
   async function createProject() {
-    if (!id) return alert("No user yet");
+    if (!userId) return alert("No user yet");
     const res = await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        user_id: id,
+        user_id: userId,
         project_name: "My First Project",
       }),
     });
@@ -38,12 +38,12 @@ export default function TestPage() {
   }
 
   async function publishVideo() {
-    if (!id) return alert("No user yet");
+    if (!userId) return alert("No user yet");
     const res = await fetch("/api/publish", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        user_id: id,
+        user_id: userId,
         video_id: "vid_" + Date.now(),
       }),
     });
@@ -54,11 +54,11 @@ export default function TestPage() {
   return (
     <div style={{ padding: 20 }}>
       <h1>API Test Page</h1>
-      {/* <button onClick={createUser}>Create User</button> */}
-      <button onClick={createProject} disabled={!id}>
+      <button onClick={createUser}>Create User</button>
+      <button onClick={createProject} disabled={!userId}>
         Create Project
       </button>
-      <button onClick={publishVideo} disabled={!id}>
+      <button onClick={publishVideo} disabled={!userId}>
         Publish Video
       </button>
 

@@ -24,6 +24,7 @@ export async function enqueueEmail({
       variant,
       payload,
       send_after: sendAfter,
+      status: "pending", // 👈 add this
     },
   ]);
 

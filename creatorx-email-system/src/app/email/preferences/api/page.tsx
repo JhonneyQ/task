@@ -10,7 +10,7 @@ export default function PreferencesPage() {
   const [message, setMessage] = useState("");
 
   // ⚡ replace with actual signed userId or parse from query (?u=...)
-  const userId = "85629cc3-edfc-434a-962b-951e0121ed1d";
+  const userId = "da36709c-5d0d-4ff7-af19-0adcd62e6188";
 
   useEffect(() => {
     async function load() {

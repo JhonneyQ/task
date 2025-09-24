@@ -26,7 +26,7 @@ create table if not exists email_templates (
 );
 
 -- Queue
-create type if not exists email_status as enum ('pending','sending','sent','failed','canceled');
+create type if not exists email_status as enum ('pending','sending','sent','failed','canceled', 'processing');
 
 create table if not exists email_queue (
   id uuid primary key default gen_random_uuid(),
