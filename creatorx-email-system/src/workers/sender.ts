@@ -40,18 +40,18 @@ export async function senderLoop() {
   }
 
   // 2. Mark them as "sending"
-  const ids = emails.map((e) => e.id);
-  await supabase.from("email_queue").update({ status: "sending" }).in("id", ids);
+  // const ids = emails.map((e) => e.id);
+  // await supabase.from("email_queue").update({ status: "sending" }).in("id", ids);
 
   // 3. Process each
   for (const email of emails) {
     try {
       // (a) Quiet hours
-      if (isQuietHours() && process.env.DEMO_MODE !== "true") {
-        console.log("⏸ Quiet hours, delaying send");
-        await supabase.from("email_queue").update({ status: "pending" }).eq("id", email.id);
-        continue;
-      }
+      // if (isQuietHours() && true) {
+      //   console.log("⏸ Quiet hours, delaying send");
+      //   await supabase.from("email_queue").update({ status: "pending" }).eq("id", email.id);
+      //   continue;
+      // }
 
       // (b) Get user
       const { data: user, error: userError } = await supabase
@@ -95,15 +95,15 @@ export async function senderLoop() {
         .order("created_at", { ascending: false })
         .limit(1);
 
-      if (
-        recent?.length &&
-        new Date().getTime() - new Date(recent[0].created_at).getTime() <
-          RATE_LIMIT_HOURS * 60 * 60 * 1000
-      ) {
-        console.log(`⏳ Rate limited: user ${email.user_id} had an email in last 24h`);
-        await supabase.from("email_queue").update({ status: "skipped" }).eq("id", email.id);
-        continue;
-      }
+      // if (
+      //   recent?.length &&
+      //   new Date().getTime() - new Date(recent[0].created_at).getTime() <
+      //     RATE_LIMIT_HOURS * 60 * 60 * 1000
+      // ) {
+      //   console.log(`⏳ Rate limited: user ${email.user_id} had an email in last 24h`);
+      //   await supabase.from("email_queue").update({ status: "skipped" }).eq("id", email.id);
+      //   continue;
+      // }
 
       // (e) Idempotency — skip duplicate template within 48h
       const { data: dup } = await supabase
